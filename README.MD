@@ -1,286 +1,243 @@
-# 🧩 Full-Featured Python Tkinter Chess Game
+# Full-Featured Python Chess Game (Tkinter + AI)
 
-This is a complete chess game built from scratch in **Python** using **Tkinter** for the graphical user interface.  
-It includes all the standard chess rules such as **en-passant**, **castling**, **promotion**, **check/checkmate/stalemate detection**, and **undo / restart / save / load** functionalities.  
-An optional **AI opponent** is also integrated with selectable difficulty levels.
-
----
-
-## 🎯 Overview
-
-The program is structured into three main layers:
-
-1. **Game Logic (`GameState`)** — Handles board state, rules, move validation, and chess-specific mechanics.  
-2. **GUI Layer (`ChessApp`)** — Manages the Tkinter interface, user interaction, drawing, and event handling.  
-3. **Persistence & AI** — Responsible for saving/loading games, undo history, and generating AI moves.
+This project is a full chess application I built using Python and Tkinter.  
+It includes all the standard chess mechanics, a simple AI opponent with difficulty levels, save/load features, and checkmate/stalemate detection.  
+Everything runs locally with no external dependencies besides Python’s standard library.
 
 ---
 
-## 🧠 Game Logic: The `GameState` Class
+# Folder Structure
 
-This class represents the **core engine** of the chess game. It defines the board, rules, and movement logic.
+## chess_project
 
-### **Constructor: `__init__(self)`**
+### game
+- _init_.py
+- utilities.py
+- state.py
+- ai.py
 
-- Initializes the 8×8 chessboard as a nested list.  
-- Places all standard chess pieces using single-character codes:
-  - Uppercase → White pieces (`R`, `N`, `B`, `Q`, `K`, `P`)
-  - Lowercase → Black pieces (`r`, `n`, `b`, `q`, `k`, `p`)
-- Sets initial turn (`white_to_move = True`)
-- Initializes game history, castling rights, en-passant target square, and flags for checkmate/stalemate.
+### ui
+- _init_.py
+- gui.py
 
----
+### main.py
 
-### **Method: `make_move(self, r, c, nr, nc)`**
 
-This method performs a **complete move operation**. It:
-1. Moves a piece from `(r, c)` → `(nr, nc)` on the board.
-2. Handles **pawn promotion** automatically (usually promotes to Queen).
-3. Executes **castling** (moves rook accordingly).
-4. Performs **en-passant capture** if applicable.
-5. Updates the **game history** for undo functionality.
-6. Switches the player turn.
-7. Checks for check, checkmate, or stalemate after the move.
+# What each file does
 
----
 
-### **Method: `undo_move(self)`**
+### main.py
+This is the main entry point for the game.  
+It just creates the Tkinter window and launches the GUI.
 
-- Reverts the game to the **previous state** by popping the last move from `self.history`.
-- Restores the board, current player, castling rights, and en-passant target.
-- This allows players to take back moves freely.
+To run the file open the terminal on your IDE(either VS code, Pycharm or whichever one you use and type)
 
----
+```python
+import tkinter as tk
+from ui.gui import ChessGUI
 
-### **Method: `generate_legal_moves(self, for_color=None)`**
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ChessGUI(root)
+    root.mainloop()
 
-This is one of the most important functions in the engine.  
-It returns a list of **all valid moves** for the current (or specified) player.
-
-Internally it:
-1. Iterates over all pieces of the given color.
-2. Calls `generate_moves_for_square()` to get all candidate moves.
-3. Simulates each move on a **temporary copy of the board**.
-4. Filters out moves that would leave the king in check.
-5. Returns a list of legal moves in `(r, c, nr, nc)` format.
-
-This method also correctly simulates **castling** and **en-passant** moves during validation.
+```
 
 ---
 
-### **Method: `generate_moves_for_square(self, r, c)`**
+### ui/gui.py
 
-This function generates **raw movement patterns** for a piece located at `(r, c)`  
-without considering checks or king safety.
+This is where I built the full Tkinter user interface.
+It handles:
 
-It defines how each piece moves:
-- **Pawn:** Forward moves, diagonal captures, and en-passant possibilities.
-- **Knight:** L-shaped jumps.
-- **Bishop:** Diagonal sliding moves.
-- **Rook:** Horizontal and vertical sliding moves.
-- **Queen:** Combination of rook and bishop movements.
-- **King:** One-square moves in all directions, plus castling.
+- Drawing the chessboard and pieces
 
----
+- Handling user clicks for moves
 
-### **Method: `is_in_check(self, color, board=None)`**
+- Displaying move history
 
-Determines if the given color’s **king is under attack**.
+- Saving and loading games
 
-- Scans the board to find the king’s coordinates.
-- Checks if any enemy piece has a move that targets the king’s square.
-- Returns `True` if the king is in check; `False` otherwise.
+- Updating the board after each move
 
-This method is crucial for verifying move legality, detecting checkmate, and evaluating game termination conditions.
+- Triggering the AI opponent when enabled
 
----
 
-### **Method: `get_king_position(self, color, board)`**
+We used a Canvas widget for the board and a side Listbox to display move history.
+Buttons for Undo, Restart, Save, and Load are also included.
 
-A helper function that locates the coordinates `(row, col)` of a specific color’s king on the board.
+Important Methods:
 
-Used internally by `is_in_check()` and `generate_legal_moves()`.
+- `draw_board()`: Draws the 8x8 chess grid and pieces.
 
----
+- `on_click()`: Handles user selection and moves.
 
-### **Method: `in_bounds(self, r, c)`**
+- `check_post_move()`: Checks for checkmate, stalemate, and draws.
 
-Returns `True` if `(r, c)` lies within the 8×8 board, and `False` otherwise.  
-Used as a safety check during move generation.
+- `schedule_ai_move()` and `make_ai_move()`: Runs AI turns automatically after the player moves.
+
+- `save_game()` / `load_game()`: Uses JSON for saving and restoring game state.
+
 
 ---
 
-### **Method: `is_square_attacked(self, r, c, by_color)`**
+### game/state.py
 
-Checks whether the square `(r, c)` is attacked by any piece of `by_color`.
+This file manages the actual chess logic — the current position, turns, move legality, and history.
+I keep everything in a GameState class.
 
-It iterates through all pieces of that color and examines if any of them can legally move to `(r, c)`.
+Key Responsibilities:
 
----
+- Keeping track of the board (an 8x8 list)
 
-### **Method: `is_checkmate(self, color)`**
+- Determining whose turn it is
 
-Returns `True` if:
-1. The player of `color` is in check, **and**
-2. Has **no legal moves**.
+- Generating legal moves for each side
 
-Used after every move to determine whether the game should end with a “Checkmate!” message.
+- Detecting checks, checkmate, and stalemate
 
----
+- Enforcing en-passant, castling, and pawn promotion
 
-### **Method: `is_stalemate(self, color)`**
+- Storing move history for undo and save/load
 
-Returns `True` if:
-1. The player of `color` is **not in check**, and  
-2. Has **no legal moves**.
+Notable Methods:
 
-When both conditions are true, the game ends in a **draw**.
+- `generate_legal_moves(side)`: Returns a list of all legal moves for the given color.
 
----
+- `make_move(r, c, nr, nc)`: Moves a piece and updates game state.
 
-### **Method: `save_game(self, filename)`**
+- `is_in_check(side)`: Detects if a side’s king is under attack.
 
-Saves the current game state (board, history, turn, etc.) into a **JSON file**.  
-This allows resuming games later.
+- `undo()`: Reverses the last move.
+
+- `save_json()` / `load_json()`: Serializes and deserializes the entire game into JSON format.
 
 ---
 
-### **Method: `load_game(self, filename)`**
+### game/utilities.py
 
-Reads a previously saved JSON file and restores all game parameters into memory.
+This file defines the behavior of each chess piece type.
+Every piece (King, Queen, Rook, Bishop, Knight, Pawn) is a subclass of a base Piece class.
 
----
+Example:
 
-### **Method: `get_ai_move(self, difficulty)`**
+1. The King class includes castling logic.
 
-Implements simple AI behavior for one side.
+2. The Pawn class handles en-passant and promotion.
 
-Depending on difficulty:
-- **Easy:** Makes random legal moves.
-- **Medium:** Random moves with basic heuristics (avoid obvious losses).
-- **Hard:** Searches for moves that maximize positional advantage (simplified minimax).
+3. The Rook and Bishop generate sliding moves.
 
----
+4. The Knight uses fixed offsets.
 
-## 🎨 GUI: The `ChessApp` Class
+Each piece class has a method like:
 
-This class is responsible for the **user interface** using Tkinter.  
-It draws the board, handles mouse clicks, updates piece graphics, and displays alerts.
+```python
+def get_moves(self, board, r, c):
+    # returns list of (new_row, new_col) for legal moves
+```
 
-### **Constructor: `__init__(self, root)`**
+### game/ai.py
 
-- Initializes the main Tkinter window.
-- Creates a canvas grid for the chessboard.
-- Loads piece icons.
-- Binds mouse click events for selecting and moving pieces.
-- Displays side indicators, score counters, and menu buttons (Undo, Save, Load, Restart).
+This file handles the computer opponent.
 
----
+I added three difficulty levels:
 
-### **Method: `draw_board(self)`**
+1. Easy: Random legal move
 
-Draws the 8×8 checkerboard pattern on the canvas using alternating light/dark colors.
+2. Medium: Random legal move but tries to capture if possible
 
----
+3. Hard: Basic logic that prioritizes material advantage
 
-### **Method: `draw_pieces(self)`**
+The AI uses the same move generation logic as the human player.
+It doesn’t use deep chess heuristics but it’s fun and fast.
 
-Loops through the board matrix in `GameState` and draws the appropriate image for each piece on its square.
+Key Function:
+```python
+def ai_choose_move(state, level, side):
+    # returns (r, c, nr, nc)
+```
 
----
-
-### **Method: `on_square_click(self, event)`**
-
-Handles user mouse clicks:
-1. On the first click → selects a piece to move.
-2. On the second click → attempts to move to the clicked destination.
-3. If the move is legal → calls `game.make_move()` and updates the board.
-4. After the move → checks for checkmate/stalemate, plays sounds, or triggers AI moves.
-
----
-
-### **Method: `update_status(self)`**
-
-Updates the GUI labels for:
-- Whose turn it is.
-- Whether the player is in check.
-- Current game outcome (Checkmate, Stalemate, Draw).
+### Implemented Features
+- ✅ Click-to-move GUI
+- ✅	En-passant
+- ✅	Castling
+- ✅	Pawn Promotion
+- ✅	Check / Checkmate / Stalemate detection
+- ✅	Undo Move
+- ✅	Save / Load (JSON format)
+- ✅	AI Opponent (Easy / Medium / Hard)
+- ✅	Move History
+- ✅	Restart Game
+- ✅	GUI-based Alerts for Game Over
 
 ---
 
-### **Method: `show_message(self, msg)`**
+# How to Run the Game
 
-Displays a modal message box (Tkinter `messagebox`) for notifications like:
-- “Checkmate! White wins.”
-- “Stalemate — Draw.”
-- “Invalid move.”
+1. Make sure you have Python 3 installed.
 
----
+2. Navigate to the project folder.
 
-### **Method: `restart_game(self)`**
-
-Resets everything to the starting position using a new `GameState` object.  
-Clears history, resets turn, and redraws the board.
+3. Run the main file:
+```python
+python main.py
+```
+The Tkinter window will open automatically.
 
 ---
 
-### **Method: `undo_move(self)`**
+# How the Game Works Internally
 
-Calls `GameState.undo_move()` and refreshes the GUI.
+Whenever you click a piece:
 
----
+The on_click() method checks if it’s your turn.
 
-### **Method: `save_game(self)` / `load_game(self)`**
+If valid, it highlights possible moves.
 
-Wraps around the respective `GameState` functions for persistence.
+Clicking a valid square makes the move.
 
----
+The game state updates, move history records, and AI moves (if enabled).
 
-## 🧩 Additional Features
+If the AI is playing, it automatically makes a move after a short delay using schedule_ai_move().
 
-| Feature | Description |
-|----------|-------------|
-| **En Passant** | Implemented via `self.en_passant` square tracking. |
-| **Castling** | Automatically validated and executed when legal. |
-| **Undo** | Fully state-aware; supports multi-step undo. |
-| **AI Opponent** | Selectable difficulty; move generator uses random or heuristic logic. |
-| **Save / Load** | Saves game to JSON; restores complete state. |
-| **Promotion** | Pawns automatically promote to Queens. |
-| **Check / Checkmate / Stalemate** | Verified after every move using `is_in_check()` and `generate_legal_moves()`. |
+Each move triggers check_post_move() to verify if the game has ended in checkmate or stalemate.
+
+Saving and Loading Games
+
+When you click Save, the current game state is stored as a .json file.
+Load restores everything (board position, move history, turn, etc.) exactly as it was.
 
 ---
 
-## ⚙️ How It All Works Together
+# 🤖AI Overview
 
-1. The user clicks a piece.
-2. The GUI calls `generate_legal_moves()` to highlight legal destinations.
-3. When a move is chosen, `make_move()` updates the board and triggers `is_in_check()`.
-4. If the move results in checkmate/stalemate, `ChessApp` shows the appropriate message.
-5. Otherwise, the turn toggles and the game continues.
+The AI’s logic is based on move generation and a simple scoring system:
 
----
+Pawns = 1
 
-## 💡 Developer Notes
+Knights / Bishops = 3
 
-- Board coordinates follow `(row, column)` order with `(0,0)` = top-left (White’s rook).
-- Piece notation matches standard chess characters for simplicity.
-- All move validation logic is encapsulated within `GameState`; the GUI only visualizes it.
-- The separation of logic and GUI ensures the game could later be adapted for CLI, web, or multiplayer versions.
+Rooks = 5
+
+Queens = 9
+
+In hard mode, it looks one move ahead and tries to choose moves that maximize material value.
 
 ---
 
-## 🏁 Summary
 
-This project demonstrates:
-- **Object-Oriented Design** in Python  
-- **Event-driven programming** using Tkinter  
-- **Game state management**, move generation, and rule enforcement  
-- **AI and file persistence integration**  
-- **Practical handling of complex rules** like castling and en-passant  
+# 🗒️Notes
 
-Every part of the game — from move validation to board drawing — was written manually without external chess libraries, making it both a learning project and a fully functional chess application.
+GUI runs entirely on Tkinter (no Pygame needed)
 
-## 👨‍💻Authors/Creators
+Saves are in plain JSON for easy debugging
+
+The AI intentionally plays imperfectly to keep it fun
+
+You can easily modify piece images or colors in `draw_board()`
+
+# 🧑‍💻Authors 
 Group 20
-
----
+1. Akwada Emmanuel Chinedu (Group Leader)
+2. Abdullahi Saleh Abdullahi
+3. Ahmad Alhaji Ali
